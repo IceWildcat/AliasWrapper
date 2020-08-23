@@ -139,8 +139,8 @@ class wShell(cmd.Cmd):
         if self.aliases.get(args_list[0], None):
             self.onecmd(self.aliases[args_list[0]])
         elif self.command_in_path(args_list[0]) or os.path.isfile(args_list[0]):
-            # If the command is a file found in the PATH or the command itself is a file, execute it as-is
-            return os.system(' '.join(args_list))
+            # If the command is a file found in the PATH or the command itself is a file, execute it as is
+            return self.do_shell(' '.join(args_list))
         else:
             super().default(line)
 

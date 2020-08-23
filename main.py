@@ -41,14 +41,18 @@ class wShell(cmd.Cmd):
 
         return
 
-    def do_ls(self, args: str):  # TODO: flags dFil[a,h,s]rRsStX
+    def ls_logic(self, filename, args_list): # TODO: flags dFil[a,h,s]rRsStX
+        return 'a' in args_list or not filename.startswith('.') # If not flag 'a', show only not hidden files
+
+    def do_ls(self, args: str):
         ls_dir = '.'
-        if len(args) > 1:
-            args_index = 0 if args[0].startswith('-') else 1  # Find the index for the flags
+        if len(args.split(" ")) > 2:
+            args_split = args.split(" ")
+            args_index = 0 if args_split[0].startswith('-') else 1  # Find the index for the flags
 
-            args_list = [arg for arg in args[args_index] if not arg == '-']  # With that index, get the flags as a list
+            args_list = [arg for arg in args_split[args_index] if not arg == '-']  # With that index, get the flags as a list
 
-            ls_dir = args[1 - args_index]  # The directory is the other argument
+            ls_dir = args_split[1 - args_index]  # The directory is the other argument
 
             if os.path.isdir(ls_dir):  # If the directory does not exist, return error
                 return 1
@@ -58,9 +62,7 @@ class wShell(cmd.Cmd):
                          if not arg == '-']  # If there is only one argument (or none) it is much more straight-forward
 
         # Get a sorted list of all the files inside the directory.
-        files = sorted([f for f in os.listdir(ls_dir)
-                        if ('a' in args_list or not f.startswith('.'))  # If not flag 'a', show only not hidden files
-                        ], key=lambda f: f.lower())
+        files = sorted([f for f in os.listdir(ls_dir) if self.ls_logic(f, args_list)], key=lambda f: f.lower())
         # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
         files_output = "\t\t".join(files)

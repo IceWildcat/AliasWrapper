@@ -88,6 +88,19 @@ class wShell(cmd.Cmd):
     def do_shell(self, line: str):
         return os.system(line)
 
+    def command_in_path(self, exe):
+        """Checks in every address in the system PATH enviroment variable whether the command exists or not. If it does,
+        it executes it. Otherwise, returns False"""
+
+        for path in os.environ['PATH'].split(";"):  # For each value in the PATH
+            if not os.path.isdir(path):  # If the PATH address is not valid, move on
+                continue
+
+            if exe + '.exe' in os.listdir(path):  # However, if an executable file with the given name exists,
+                return True   # Execute it with the given arguments
+
+        return False  # Otherwise, return False (the command is not in PATH)
+
     def postcmd(self, stop, line: str):
         self.prompt = str(0 if stop is None else stop) + "<" + str(os.getcwd()) + ">"
         return
@@ -96,6 +109,8 @@ class wShell(cmd.Cmd):
         l = line.split(' ')
         if self.aliases.get(l[0], None):
             self.onecmd(self.aliases[l[0]])
+        elif self.command_in_path(l[0]):
+            return os.system(' '.join(l))
         else:
             super().default(line)
 

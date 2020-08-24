@@ -10,6 +10,8 @@ class wShell(cmd.Cmd):
     }
     aliasfile = str(os.path.expanduser("~")) + "\\.alias.cfg"
 
+    remembered_dirs = [os.getcwd()]
+
     def emptyline(self):
         return
 
@@ -40,6 +42,33 @@ class wShell(cmd.Cmd):
         self.stdout.write("\n")
 
         return
+
+    def do_pushd(self, args: str):  # TODO: arguments  [-n] [+N | -N | dir]
+        if not os.path.isdir(args):
+            return 1  # TODO: Error message
+
+        self.remembered_dirs.append(args)
+        self.cmdqueue.append("dirs")
+        self.cmdqueue.append("cd " + args)
+
+    def do_popd(self, args: str):  # TODO: arguments [-n] [+N | -N]
+        if len(self.remembered_dirs) == 0:
+            return 1  # TODO: Error message
+
+        dir_pop = self.remembered_dirs.pop()
+        self.stdout.write(f'{dir_pop}\n')
+        self.cmdqueue.append("cd " + dir_pop)
+
+    def do_dirs(self, args: str):  # TODO: arguments: [-clpv] [+N] [-N]
+        if len(args) == 1:
+            args_list = [arg for arg in args if not arg == '-']
+
+            if 'c' in args_list:
+                self.remembered_dirs = [os.getcwd()]
+                return 0
+
+        dir_output = "\t".join(self.remembered_dirs) + "\t" + os.getcwd()
+        self.stdout.write(f'{dir_output}\n')
 
     def ls_logic(self, filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
         return 'a' in args_list or not filename.startswith('.')  # If not flag 'a', show only not hidden files
@@ -82,7 +111,7 @@ class wShell(cmd.Cmd):
                 return 1  # TODO: Error message
 
             file = open(f, 'r')
-            for line in file.readlines():
+            for line in file.readlines():  # TODO: possible optimization(?)
                 if args_list is not None and 'n' in args_list:
                     n += 1
                     self.stdout.write(f'{str(n) + ") " + line}')
@@ -116,6 +145,9 @@ class wShell(cmd.Cmd):
     def do_quit(self, args: str):
         """Exit the program."""
         exit(0)
+
+    def do_echo(self, args: str):
+        self.stdout.write(f"{args}\n")
 
     def do_cd(self, args: str):
         """Changes the current working directory."""

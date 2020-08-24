@@ -12,7 +12,6 @@ Probably not very useful on GNU/Linux envs, or even any environment different th
 
 
 ## Things to do
-* Check for commands in PATH.
 * Cleanup.
 * Testing.
 * Change internal system to have a shell subprocess instead of shouting system calls.
@@ -24,3 +23,9 @@ Probably not very useful on GNU/Linux envs, or even any environment different th
 3. Add aliases
 4. ??
 5. Profit!
+
+## Available commands
+* cat
+* ls (partially implemented)
+* cd
+* Execute programs in the system PATH, for example `javac Main.java`

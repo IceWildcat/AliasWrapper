@@ -41,8 +41,8 @@ class wShell(cmd.Cmd):
 
         return
 
-    def ls_logic(self, filename, args_list): # TODO: flags dFil[a,h,s]rRsStX
-        return 'a' in args_list or not filename.startswith('.') # If not flag 'a', show only not hidden files
+    def ls_logic(self, filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
+        return 'a' in args_list or not filename.startswith('.')  # If not flag 'a', show only not hidden files
 
     def do_ls(self, args: str):
         ls_dir = '.'
@@ -50,12 +50,13 @@ class wShell(cmd.Cmd):
             args_split = args.split(" ")
             args_index = 0 if args_split[0].startswith('-') else 1  # Find the index for the flags
 
-            args_list = [arg for arg in args_split[args_index] if not arg == '-']  # With that index, get the flags as a list
+            args_list = [arg for arg in args_split[args_index] if
+                         not arg == '-']  # With that index, get the flags as a list
 
             ls_dir = args_split[1 - args_index]  # The directory is the other argument
 
             if os.path.isdir(ls_dir):  # If the directory does not exist, return error
-                return 1
+                return 1  # TODO: Error message
 
         else:
             args_list = [arg for arg in args
@@ -69,6 +70,27 @@ class wShell(cmd.Cmd):
         self.stdout.write(f'{files_output}\n')
 
         return 0  # Success
+
+    def do_cat(self, args: str):
+        args_split = args.split(" ")
+        args_list = [arg for arg in args_split[0] if not arg == '-'] if args_split[0].startswith('-') else None
+        files = [f for f in args_split if not f.startswith('-')]
+
+        for f in files:
+            n = 0
+            if not os.path.isfile(f):
+                return 1  # TODO: Error message
+
+            file = open(f, 'r')
+            for line in file.readlines():
+                if args_list is not None and 'n' in args_list:
+                    n += 1
+                    self.stdout.write(f'{str(n) + ") " + line}')
+                else:
+                    self.stdout.write(f'{line}')
+
+            file.close()
+            self.stdout.write('\n\n')
 
     def do_unalias(self, args: str):
         """Unregister a command alias. It autosaves it to the alias file.

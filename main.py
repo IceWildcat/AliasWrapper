@@ -44,6 +44,8 @@ class wShell(cmd.Cmd):
         return
 
     def do_pushd(self, args: str):  # TODO: arguments  [-n] [+N | -N | dir]
+        """Save the current directory into a stack and move to a new directory.
+        Usage: pushd [-n] [+N | -N | dir]"""
         if not os.path.isdir(args):
             return 1  # TODO: Error message
 
@@ -52,6 +54,8 @@ class wShell(cmd.Cmd):
         self.cmdqueue.append("cd " + args)
 
     def do_popd(self, args: str):  # TODO: arguments [-n] [+N | -N]
+        """popd can be used to return back to the previous directory that is on top of the stack.
+        Usage: popd [-n] [+N | -N]"""
         if len(self.remembered_dirs) == 0:
             return 1  # TODO: Error message
 
@@ -60,6 +64,8 @@ class wShell(cmd.Cmd):
         self.cmdqueue.append("cd " + dir_pop)
 
     def do_dirs(self, args: str):  # TODO: arguments: [-clpv] [+N] [-N]
+        """Display the list of currently remembered directories. By default, it includes the directory you are currently in. A directory can get into the list via pushd command followed by the dir name and can be removed via popd command.
+        Usage: dirs  [-clpv] [+N] [-N]"""
         if len(args) == 1:
             args_list = [arg for arg in args if not arg == '-']
 
@@ -71,9 +77,16 @@ class wShell(cmd.Cmd):
         self.stdout.write(f'{dir_output}\n')
 
     def ls_logic(self, filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
+        """Given a file name and the argument list, determines if it sould be shown or not.
+        :param filename: Name of the file being evaluated
+        :param args_list: List of arguments
+        :return: True (show file) | False (don't show file)
+        """
         return 'a' in args_list or not filename.startswith('.')  # If not flag 'a', show only not hidden files
 
     def do_ls(self, args: str):
+        """List files and directories.
+        Usage: ls [options] [directory]"""
         ls_dir = '.'
         if len(args.split(" ")) > 2:
             args_split = args.split(" ")
@@ -101,6 +114,8 @@ class wShell(cmd.Cmd):
         return 0  # Success
 
     def do_cat(self, args: str):
+        """It has three related functions with regard to text files: displaying them, combining copies of them and creating new ones.
+        Usage: cat [options] [filenames] [-] [filenames]"""
         args_split = args.split(" ")
         args_list = [arg for arg in args_split[0] if not arg == '-'] if args_split[0].startswith('-') else None
         files = [f for f in args_split if not f.startswith('-')]
@@ -146,11 +161,14 @@ class wShell(cmd.Cmd):
         """Exit the program."""
         exit(0)
 
-    def do_echo(self, args: str):
+    def do_echo(self, args: str):  # TODO: options
+        """Writes its arguments to standard output.
+        Usage: echo [option(s)] [string(s)]"""
         self.stdout.write(f"{args}\n")
 
-    def do_cd(self, args: str):
-        """Changes the current working directory."""
+    def do_cd(self, args: str):  # TODO: options
+        """Changes the current working directory.
+        Usage: cd [option] [directory]"""
         n = -1
         try:
             os.chdir(args)

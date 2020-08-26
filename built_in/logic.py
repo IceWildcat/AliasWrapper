@@ -1,38 +1,57 @@
 from main import wShell as sh
 import re
+import os
 
-regex_path = '[a-z]:\\(?:[^/:*?\'<>|\r\n]+\\)*[^/:*?"<>|\r\n]*'
+# TODO: Explanation of the regex(?)
+regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[a-z0-9]+)?\"?"
 regex_value = "(\\$[A-Za-z0-9]+|-?[0-9]+)"
+regex_string = '"[^"]*"'
 
-
-def reformat_test(test: str):
+# TODO: check logic
+def arithmetic_test(test: str):
     # -eq, -ne, -lt, -le, -gt, or -ge
 
-    if '-ne' in test.split(" "):
-        test = "not " + test.replace("-ne", "==")
+    expr = ""
+    for thing in test.split(" "):
+        if thing.startswith('$'):
+            if not sh.variables[thing[1:]]:
+                return 3
+            else:
+                expr += str(sh.variables[thing[1:]]) + " "
+        else:
+            expr += thing + " "
 
-    test = test.replace("-eq", "==")
-    test = test.replace("-lt", "<")
-    test = test.replace("-le", "<=")
-    test = test.replace("-gt", ">")
-    test = test.replace("-ge", ">=")
-    test = test.replace("-o", " or ")
-    test = test.replace("-a", " and ")
-    test = test.replace("!", "not ")
+    if '-ne' in expr.split(" "):
+        expr = "not " + expr.replace("-ne", "==")
 
-    return test
+    expr = expr.replace("-eq", "==")
+    expr = expr.replace("-lt", "<")
+    expr = expr.replace("-le", "<=")
+    expr = expr.replace("-gt", ">")
+    expr = expr.replace("-ge", ">=")
+    expr = expr.replace("!", "not ")
 
+    return 0 if eval(expr) else 1
 
-def arithmetic_test(test: str):
-    return 0 if eval(test) else 1
+# TODO: support for all the arguments
+def file_test(test: str):
+    split = test.split(" ")
+    file = split[0]
 
+    if split[0] == '-e':
+        return 0 if os.path.isfile(file) or os.path.isdir(file) else 1
+
+    return 2
+
+# TODO: String logic
 
 def do_test(args: str):
     if re.fullmatch("^" + regex_value + " -(eq|ne|le|lt|ge|gt) " + regex_value + "$", args):
-        print("Arithmetic")
-    elif re.fullmatch('^-([b-h]|G|k|L|O|p|[r-u]|S|w|x)' + regex_path + '$', args):
+        return arithmetic_test(args)
+    elif re.fullmatch('^-([b-h]|G|k|L|O|p|[r-u]|S|w|x) ' + regex_path + '$', args):
         print("file")
-    elif args:  # TODO: regex for the string tests
+    elif re.fullmatch('^-(z|n) ' + regex_string + '$', args) or \
+            re.fullmatch('^' + regex_string + ' ?!?= ?' + regex_string + '$', args):
         print("String")
     else:
         print("other")

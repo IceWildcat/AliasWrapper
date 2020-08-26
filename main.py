@@ -15,8 +15,7 @@ class wShell(cmd.Cmd):
     remembered_dirs = [os.getcwd()]
     arithmetic_ops = ["-eq", "-ne", "-lt", "-le", "-gt", "-ge"]
 
-    from built_in import alias, cd, dirs, echo, logic
-    from extras import cat, ls, path
+
 
     @staticmethod
     def emptyline():

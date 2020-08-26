@@ -1,4 +1,8 @@
 from main import wShell as sh
+import re
+
+regex_path = '[a-z]:\\(?:[^/:*?\'<>|\r\n]+\\)*[^/:*?"<>|\r\n]*'
+regex_value = "(\\$[A-Za-z0-9]+|-?[0-9]+)"
 
 
 def reformat_test(test: str):
@@ -20,10 +24,19 @@ def reformat_test(test: str):
 
 
 def arithmetic_test(test: str):
-    return 0 if eval(sh.reformat_test(test)) else 1
+    return 0 if eval(test) else 1
 
 
 def do_test(args: str):
+    if re.fullmatch("^" + regex_value + " -(eq|ne|le|lt|ge|gt) " + regex_value + "$", args):
+        print("Arithmetic")
+    elif re.fullmatch('^-([b-h]|G|k|L|O|p|[r-u]|S|w|x)' + regex_path + '$', args):
+        print("file")
+    elif args:  # TODO: regex for the string tests
+        print("String")
+    else:
+        print("other")
+
     args_split = args.split(" ")
     operators = -1
 
@@ -39,13 +52,13 @@ def do_test(args: str):
         return 2  # TODO: Error message
 
     if operators > 0 and args_split[operators] in sh.arithmetic_ops:
-        return sh.arithmetic_test(args)
+        return arithmetic_test(reformat_test(args))
 
     return 3
 
 
 def is_assignment(line: str):
-    if re.match("^[A-Za-z]+[A-Za-z0-9]*[=][\"][A-Za-z0-9]+[\"]$", line):
+    if re.fullmatch("^[A-Za-z]+[A-Za-z0-9]*[=][\"][A-Za-z0-9]+[\"]$", line):
         split = line.split("=")
         var_name = split[0]
         var_value = split[1]

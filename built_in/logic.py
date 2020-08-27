@@ -113,25 +113,8 @@ def do_test(args: str):
     elif re.fullmatch('^-(z|n) ' + regex_string + '$', args) or \
             re.fullmatch('^' + regex_string + ' ?!?= ?' + regex_string + '$', args):
         return string_logic(processed_line)
-    else:
-        print("other")
 
-    args_split = args.split(" ")
-    operators = -1
-
-    i = 0
-    for arg in args_split:
-        if arg.startswith('-'):
-            operators = i
-            break
-
-        i += 1
-
-    if operators == -1:
-        return 2  # TODO: Error message
-
-    if operators > 0 and args_split[operators] in sh.arithmetic_ops:
-        return arithmetic_logic(reformat_test(args))
+    print("other")
 
     return 3
 

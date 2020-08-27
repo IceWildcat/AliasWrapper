@@ -15,8 +15,6 @@ class wShell(cmd.Cmd):
     remembered_dirs = [os.getcwd()]
     arithmetic_ops = ["-eq", "-ne", "-lt", "-le", "-gt", "-ge"]
 
-
-
     @staticmethod
     def emptyline():
         return
@@ -31,7 +29,9 @@ class wShell(cmd.Cmd):
         return os.system(line)
 
     def postcmd(self, stop, line: str):
-        self.prompt = str(0 if stop is None else stop) + "<" + str(os.getcwd()) + ">"
+        exit_status = 0 if stop is None else stop
+        self.prompt = str(exit_status) + "<" + str(os.getcwd()) + ">"
+        self.variables["?"] = exit_status
         return
 
     def default(self, line: str):
@@ -55,6 +55,10 @@ class wShell(cmd.Cmd):
             with open(self.aliasfile, 'a') as a:
                 a.write(json.dumps(self.aliases))
         alias.do_reloadalias("")
+
+        self.variables["?"] = "0"
+        self.variables["BASHPID"] = os.getpid()
+        self.variables["$"] = os.getpid()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from main import wShell as sh
+from main import wShell as sh, add_method
 import re  # Regex support
 import os
 import stat
@@ -10,22 +10,24 @@ regex_string = '"[^"]*"'
 
 
 # TODO: check logic
+@add_method(sh)
 def arithmetic_logic(args: str):
     # -eq, -ne, -lt, -le, -gt, or -ge
 
-    if '-ne' in expr.split(" "):
-        expr = "not " + expr.replace("-ne", "==")
+    if '-ne' in args.split(" "):
+        args = "not " + args.replace("-ne", "==")
 
-    expr = expr.replace("-eq", "==")
-    expr = expr.replace("-lt", "<")
-    expr = expr.replace("-le", "<=")
-    expr = expr.replace("-gt", ">")
-    expr = expr.replace("-ge", ">=")
-    expr = expr.replace("!", "not ")
+    args = args.replace("-eq", "==")
+    args = args.replace("-lt", "<")
+    args = args.replace("-le", "<=")
+    args = args.replace("-gt", ">")
+    args = args.replace("-ge", ">=")
+    args = args.replace("!", "not ")
 
-    return 0 if eval(expr) else 1
+    return 0 if eval(args) else 1
 
 
+@add_method(sh)
 def file_logic(args: str):
     split = args.split(" ")
     file = split[1]
@@ -85,10 +87,12 @@ def file_logic(args: str):
     return 2
 
 
+@add_method(sh)
 def string_logic(args: str):
     return 0
 
 
+@add_method(sh)
 def replace_variables(args: str):
     expr = ""
     for thing in args.split(" "):
@@ -103,6 +107,7 @@ def replace_variables(args: str):
     return expr
 
 
+@add_method(sh)
 def do_test(args: str):
     processed_line = replace_variables(args)
 
@@ -119,6 +124,7 @@ def do_test(args: str):
     return 3
 
 
+@add_method(sh)
 def is_assignment(line: str):
     if re.fullmatch("^[A-Za-z]+[A-Za-z0-9]*[=][\"][A-Za-z0-9]+[\"]$", line):
         split = line.split("=")

@@ -1,15 +1,10 @@
-from main import wShell as sh
+from built_in.logic import replace_variables
+from main import wShell as sh, add_method
 
 
+@add_method(sh)
 def do_echo(args: str):  # TODO: options
     """Writes its arguments to standard output.
     Usage: echo [option(s)] [string(s)]"""
-
-    args_split = args.split(" ")
-    args_processed = args
-
-    for arg in args_split:
-        if '$' in arg and arg[1:] in sh.variables:
-            args_processed = args_processed.replace(arg, str(sh.variables[arg[1:]]))
-
+    args_processed = replace_variables(args)
     sh.stdout.write(f"{args_processed}\n")

@@ -3,7 +3,6 @@ import os
 import json
 from functools import wraps
 
-
 def add_method(cls):
     def decorator(func):
         @wraps(func)
@@ -70,10 +69,14 @@ class wShell(cmd.Cmd):
     def __init__(self, completekey='tab', stdin=None, stdout=None):
         super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
         if not (os.path.isfile(self.aliasfile)):
-            stdout.write("Alias file not found, creating...\n")
+            self.stdout.write("Alias file not found, creating...\n")
             with open(self.aliasfile, 'a') as a:
                 a.write(json.dumps(self.aliases))
-        do_reloadalias("")
+        __do_reloadalias = getattr(self, 'do_reloadalias', None)
+        if(__do_reloadalias):
+            __do_reloadalias("")
+        else:
+            self.stdout.write("ERROR: cannot reload aliases!\n")
 
         self.variables["?"] = "0"
         self.variables["BASHPID"] = os.getpid()

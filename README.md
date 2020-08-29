@@ -8,7 +8,7 @@ Probably not very useful on GNU/Linux envs, or even any environment different th
 ## IMPORTANT NOTES
 * Implementation is done using... Bad practices. This is not a replacement for your shell (yet). Please use with caution.
 * DO NOT BLAME ME IF YOU USE THIS IN A CHAIN OR SOMETHING IMPORTANT AND IT BREAKS THINGS.
-* You can use shell commands and execute things by putting `!` before anything. THIS WRAPPER DOES NOT CHECK YOUR PATH YET.
+* You can use shell commands and execute things by putting `!` before anything. ~~THIS WRAPPER DOES NOT CHECK YOUR PATH YET.~~ It does now, but this functionality is still implemented.
 
 
 ## Things to do

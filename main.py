@@ -182,6 +182,5 @@ class wShell(cmd.Cmd):
                     self.commands_temp_history.append(command)
 
 
-
 if __name__ == "__main__":
     wShell().cmdloop()

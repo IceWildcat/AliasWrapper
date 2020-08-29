@@ -16,11 +16,10 @@ class wShell(cmd.Cmd):
     last_exit_status = 0
     remembered_dirs = [os.getcwd()]
     arithmetic_ops = ["-eq", "-ne", "-lt", "-le", "-gt", "-ge"]
-    commands_temp_history = ""
-    command_history_count = 0
+    commands_temp_history = []
 
     regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[a-z0-9]+)?\"?"
-    regex_value = "(\\$[A-Za-z0-9]+|-?[0-9]+)"
+    regex_value = "(\\$[A-Za-z0-9_]+|-?[0-9]+)"
     regex_string = '"[^"]*"'
 
     def emptyline(self):
@@ -29,9 +28,10 @@ class wShell(cmd.Cmd):
     def do_quit(self, args: str):
         """Exit the program."""
 
+        # TODO: Optimization
         # Record history on log file (.bash_history)
-        with open(self.variables['HISTFILE'], 'a+') as f:
-            f.write(self.commands_temp_history)
+        with open(self.variables['HISTFILE'], 'w') as f:
+            f.write(self.get_formatted_history())
 
         exit(0)
 
@@ -131,8 +131,13 @@ class wShell(cmd.Cmd):
     def do_echo(self, args: str):  # TODO: options
         """Writes its arguments to standard output.
         Usage: echo [option(s)] [string(s)]"""
-        args_processed = self.replace_variables(args)
+
+        args_processed, exit_status = self.replace_variables(args)
+        args_processed = args_processed.replace("\"", "")
+
         self.stdout.write(f"{args_processed}\n")
+
+        return exit_status
 
     def do_cd(self, args: str):  # TODO: options
         """Changes the current working directory.
@@ -223,21 +228,46 @@ class wShell(cmd.Cmd):
     def string_logic(self, args: str):
         return 0
 
+    def system_var(self, name):
+        if name == '?':
+            return self.last_exit_status
+
+        if name == 'BASHPID':
+            return os.getpid()
+
+        if name == '$':
+            return os.getpid()
+
+        if name == 'PWD':
+            return os.getcwd()
+
+        if name == 'HISTSIZE':
+            return os.path.getsize(self.variables['HISTFILE'])
+
+        return ""
+
     def replace_variables(self, args: str):
         expr = ""
+        status = 0
+
         for thing in args.split(" "):
             if thing.startswith('$'):
-                if not self.variables[thing[1:]]:
-                    return 3
-                else:
+                if thing[1:] in self.variables:
                     expr += str(self.variables[thing[1:]]) + " "
+                else:
+                    value = self.system_var(thing[1:])
+
+                    if not value:
+                        status = 3
+
+                    expr += str(value) + " "
             else:
                 expr += thing + " "
 
-        return expr
+        return expr, status
 
     def do_test(self, args: str):
-        processed_line = self.replace_variables(args)
+        processed_line, exit_status = self.replace_variables(args)
 
         if re.fullmatch("^" + self.regex_value + " -(eq|ne|le|lt|ge|gt) " + self.regex_value + "$", args):
             return self.arithmetic_logic(processed_line)
@@ -251,21 +281,19 @@ class wShell(cmd.Cmd):
 
         return 3
 
+    # TODO: Fix logic
     def is_assignment(self, line: str):
-        if re.fullmatch("^[A-Za-z]+[A-Za-z0-9]*[=][\"][A-Za-z0-9]+[\"]$", line):
+        if re.fullmatch("^[A-Za-z_]\\w* ?= ?(\")?[^\"]+(\")?$", line):
             split = line.split("=")
             var_name = split[0]
+            if var_name.endswith(" "):
+                var_name = var_name[:-1]
+
             var_value = split[1]
+            if var_value.startswith(" "):
+                var_value = var_value[1:]
 
             self.variables[var_name] = var_value
-
-            return True
-        elif re.match("^[A-Za-z]+[A-Za-z0-9]*[=][A-Za-z0-9]+$", line):
-            split = line.split("=")
-            var_name = split[0]
-            var_value = split[1]
-
-            self.variables[var_name] = float(var_value)
 
             return True
 
@@ -346,13 +374,28 @@ class wShell(cmd.Cmd):
 
         return False  # Otherwise, return False (the command is not in PATH)
 
+    def get_formatted_history(self):
+        hist = ""
+        count = 0
+        for command in self.commands_temp_history:
+            hist += "\t" + str(count) + "\t" + command + "\n"
+            count += 1
+
+        return hist
+
+    def do_history(self, args: str):
+        self.stdout.write(f'{self.get_formatted_history()}\n')
+        return 0
+
     def postcmd(self, stop, line: str):
         # Record history on temporal variable
-        self.commands_temp_history += "\t" + str(self.command_history_count) + "\t" + line + "\r\n"
+        self.commands_temp_history.append(line)
 
         exit_status = 0 if stop is None else stop
+
         self.prompt = str(exit_status) + "<" + str(os.getcwd()) + ">"
         self.variables["?"] = exit_status
+
         return
 
     def default(self, line: str):
@@ -377,10 +420,15 @@ class wShell(cmd.Cmd):
                 a.write(json.dumps(self.aliases))
         self.do_reloadalias("")
 
-        self.variables["?"] = "0"
-        self.variables["BASHPID"] = os.getpid()
-        self.variables["$"] = os.getpid()
-        self.variables["HISTFILE"] = os.getcwd() + ".bash_history"
+        self.variables["HISTFILE"] = os.getcwd() + "\\.bash_history"
+
+        # TODO: Optimization
+        with open(self.variables["HISTFILE"], 'r') as f:
+            for line in f.readlines():
+                split = line.split("\t")[1:]
+                number = split[0]
+                command = split[1].replace("\n", "")
+                self.commands_temp_history.append(command)
 
 
 if __name__ == "__main__":

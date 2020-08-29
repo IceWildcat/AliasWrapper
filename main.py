@@ -1,17 +1,28 @@
 import cmd
-import os
+import os,sys
 import json
 from functools import wraps
+import importlib.util
+
+
+
+funcfolders = ['built_in','extras']
 
 def add_method(cls):
     def decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             return func(*args, **kwargs)
-        setattr(cls, func.__name__, wrapper)
+        #setattr(cls, func.__name__, wrapper)
         # Note we are not binding func, but wrapper which accepts self but does exactly the same as func
         return func  # returning func means func can still be used normally
     return decorator
+
+def selfwrap(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
 
 class wShell(cmd.Cmd):
@@ -66,12 +77,51 @@ class wShell(cmd.Cmd):
 
         return
 
+    loadedmodules = []
+
+    def loadmodule(self, name:str):
+        #TODO: check if module is already loaded
+        spec = importlib.util.find_spec(name)
+        lib = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lib)
+        self.loadedmodules.append(lib)
+        setattr(lib, 'sh', self) #Hacky thing to pass the wShell instance to the module
+        for thing in dir(lib):
+            if str(thing).startswith('do_'):
+                doelement = getattr(lib,thing)
+                if callable(doelement):
+                    setattr(wShell,doelement.__name__,selfwrap(doelement))
+                    #print(doelement.__name__)
+        
+        
+        return
+
     def __init__(self, completekey='tab', stdin=None, stdout=None):
         super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
         if not (os.path.isfile(self.aliasfile)):
             self.stdout.write("Alias file not found, creating...\n")
             with open(self.aliasfile, 'a') as a:
                 a.write(json.dumps(self.aliases))
+                
+        
+        #O(n^2 for the win)
+        for foldname in funcfolders:
+            with os.scandir(foldname) as folder:
+                for fil in folder:
+                    if fil.is_dir():
+                        continue #TODO: recursion over folders maybe?
+                    if fil.name.endswith('.py'):
+                        importname = foldname + '.' + fil.name[:-3] #remove '.py' from filename
+                        try:
+                            self.loadmodule(importname)
+                        except Exception as e:
+                            print('Oops,something went poof.')
+                            #TODO: handle exceptions at importing the modules
+                            raise e
+        
+        #That shit went too deep sorry im at phone
+                    
+        
         __do_reloadalias = getattr(self, 'do_reloadalias', None)
         if(__do_reloadalias):
             __do_reloadalias("")
@@ -85,4 +135,7 @@ class wShell(cmd.Cmd):
 
 
 if __name__ == "__main__":
+    
+    
+    
     wShell().cmdloop()

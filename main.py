@@ -169,7 +169,7 @@ class wShell(cmd.Cmd):
         else:
             self.stdout.write("ERROR: cannot reload aliases!\n")
 
-        self.variables["HISTFILE"] = os.path.join(os.getcwd(),'.bash_history')
+        self.variables["HISTFILE"] = os.path.join(os.getcwd(), '.bash_history')
 
         # TODO: Optimization
         # Load the command history

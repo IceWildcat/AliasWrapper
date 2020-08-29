@@ -1,5 +1,7 @@
 from main import wShell as sh
+from built_in.logic import regex_folder
 import os
+import re
 
 
 def ls_logic(filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
@@ -8,34 +10,64 @@ def ls_logic(filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
     :param args_list: List of arguments
     :return: True (show file) | False (don't show file)
     """
-    return 'a' in args_list or not filename.startswith('.')  # If not flag 'a', show only not hidden files
+
+    if 'a' in args_list:
+        return True
+
+    return not filename.startswith('.')
 
 
 def do_ls(args: str):
     """List files and directories.
     Usage: ls [options] [directory]"""
-    ls_dir = os.getcwd()
-    if len(args.split(" ")) > 2:
-        args_split = args.split(" ")
-        args_index = 0 if args_split[0].startswith('-') else 1  # Find the index for the flags
 
-        args_list = [arg for arg in args_split[args_index] if
-                     not arg == '-']  # With that index, get the flags as a list
+    if args == "":
+        # TODO: no arguments given (do ls on cwd)
+        ls_dir = os.getcwd()
+        files = sorted([f for f in os.listdir(ls_dir) if not f.startswith(".")], key=lambda f: f.lower())
+        # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
-        ls_dir = args_split[1 - args_index]  # The directory is the other argument
+        files_output = "\t\t".join(files)
+        sh.stdout.write(f'{files_output}\n')
+        return 0
+    elif re.fullmatch(r"^" + regex_folder + "$", args):
+        # TODO: no operators given (do ls on given dir)
+        files = sorted([f for f in os.listdir(args) if not f.startswith(".")], key=lambda f: f.lower())
+        # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
-        if os.path.isdir(ls_dir):  # If the directory does not exist, return error
-            return 1  # TODO: Error message
-
+        files_output = "\t\t".join(files)
+        sh.stdout.write(f'{files_output}\n')
+        return 0
     else:
-        args_list = [arg for arg in args
-                     if not arg == '-']  # If there is only one argument (or none) it is much more straight-forward
+        # TODO: operator logic
+        # TODO: optimize
+        operator_list = []
+        path = ""
+        switch = False
+        for c in args:
+            if c == '-':
+                continue
 
-    # Get a sorted list of all the files inside the directory.
-    files = sorted([f for f in os.listdir(ls_dir) if ls_logic(f, args_list)], key=lambda f: f.lower())
-    # print(*files, sep='\t\t')  # TODO: Wrap the lines
+            if c == ' ':
+                switch = True
+                continue
 
-    files_output = "\t\t".join(files)
-    sh.stdout.write(f'{files_output}\n')
+            if switch:
+                path += c
+            else:
+                operator_list.append(c)
 
-    return 0  # Success
+        if path == '':
+            path = os.getcwd()
+
+        if not os.path.isdir(path):
+            sh.stdout.write(f'Invalid path!\n')
+            return 3
+
+        files = sorted([f for f in os.listdir(path) if ls_logic(f, operator_list)], key=lambda f: f.lower())
+        # print(*files, sep='\t\t')  # TODO: Wrap the lines
+
+        files_output = "\t\t".join(files)
+        sh.stdout.write(f'{files_output}\n')
+        return 0
+

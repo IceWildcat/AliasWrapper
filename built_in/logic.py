@@ -4,6 +4,7 @@ import os
 import stat
 
 # TODO: Explanation of the regex(?)
+regex_folder = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)+\"?"
 regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[\w]+)?\"?"
 regex_value = r"(\\$[\w]+|-?[0-9]+)"
 regex_string = r'"[^"]*"'

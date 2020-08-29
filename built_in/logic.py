@@ -1,16 +1,15 @@
-from main import wShell as sh, add_method
+from main import wShell as sh
 import re  # Regex support
 import os
 import stat
 
 # TODO: Explanation of the regex(?)
 regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[a-z0-9]+)?\"?"
-regex_value = "(\\$[A-Za-z0-9]+|-?[0-9]+)"
+regex_value = "(\\$[A-Za-z0-9_]+|-?[0-9]+)"
 regex_string = '"[^"]*"'
 
 
 # TODO: check logic
-@add_method(sh)
 def arithmetic_logic(args: str):
     # -eq, -ne, -lt, -le, -gt, or -ge
 
@@ -27,7 +26,6 @@ def arithmetic_logic(args: str):
     return 0 if eval(args) else 1
 
 
-@add_method(sh)
 def file_logic(args: str):
     split = args.split(" ")
     file = split[1]
@@ -87,35 +85,18 @@ def file_logic(args: str):
     return 2
 
 
-@add_method(sh)
 def string_logic(args: str):
     return 0
 
 
-@add_method(sh)
-def replace_variables(args: str):
-    expr = ""
-    for thing in args.split(" "):
-        if thing.startswith('$'):
-            if not sh.variables[thing[1:]]:
-                return 3
-            else:
-                expr += str(sh.variables[thing[1:]]) + " "
-        else:
-            expr += thing + " "
-
-    return expr
-
-
-@add_method(sh)
 def do_test(args: str):
-    processed_line = replace_variables(args)
+    processed_line, exit_status = sh.replace_variables(args)
 
     if re.fullmatch("^" + regex_value + " -(eq|ne|le|lt|ge|gt) " + regex_value + "$", args):
         return arithmetic_logic(processed_line)
     elif re.fullmatch('^-([b-h]|G|k|L|O|p|[r-u]|S|w|x) ' + regex_path + '$', args):
         return file_logic(processed_line)
-    elif re.fullmatch('^-(z|n) ' + regex_string + '$', args) or \
+    elif re.fullmatch('^-[zn] ' + regex_string + '$', args) or \
             re.fullmatch('^' + regex_string + ' ?!?= ?' + regex_string + '$', args):
         return string_logic(processed_line)
 
@@ -124,22 +105,19 @@ def do_test(args: str):
     return 3
 
 
-@add_method(sh)
+# TODO: Fix logic
 def is_assignment(line: str):
-    if re.fullmatch("^[A-Za-z]+[A-Za-z0-9]*[=][\"][A-Za-z0-9]+[\"]$", line):
+    if re.fullmatch("^[A-Za-z_]\\w* ?= ?(\")?[^\"]+(\")?$", line):
         split = line.split("=")
         var_name = split[0]
+        if var_name.endswith(" "):
+            var_name = var_name[:-1]
+
         var_value = split[1]
+        if var_value.startswith(" "):
+            var_value = var_value[1:]
 
         sh.variables[var_name] = var_value
-
-        return True
-    elif re.match("^[A-Za-z]+[A-Za-z0-9]*[=][A-Za-z0-9]+$", line):
-        split = line.split("=")
-        var_name = split[0]
-        var_value = split[1]
-
-        sh.variables[var_name] = float(var_value)
 
         return True
 

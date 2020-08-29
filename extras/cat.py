@@ -1,5 +1,5 @@
 from main import wShell as sh
-
+import os
 
 def do_cat(args: str):
     """It has three related functions with regard to text files: displaying them, combining copies of them and creating new ones.

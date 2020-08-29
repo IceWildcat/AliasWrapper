@@ -1,8 +1,7 @@
 import json
-from main import wShell as sh, add_method
+from main import wShell as sh
 
 
-@add_method(sh)
 def do_alias(args: str):  # TODO: clean this shit
     """Register or check a command alias. It autosaves it to the alias file.
   Usage: alias <alias> [command] [args...]"""
@@ -32,7 +31,6 @@ def do_alias(args: str):  # TODO: clean this shit
     return
 
 
-@add_method(sh)
 def do_reloadalias(line: str):  # TODO (1): handle exceptions
     """Reloads the alias file and parses it into internal memory."""
     with open(sh.aliasfile, 'r') as a:
@@ -42,7 +40,6 @@ def do_reloadalias(line: str):  # TODO (1): handle exceptions
     return 0
 
 
-@add_method(sh)
 def do_unalias(args: str):
     """Unregister a command alias. It autosaves it to the alias file.
   Usage: unalias <alias>"""

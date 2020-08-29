@@ -1,8 +1,7 @@
-from main import wShell as sh, add_method
+from main import wShell as sh
 import os
 
 
-@add_method(sh)
 def do_cd(args: str):  # TODO: options
     """Changes the current working directory.
     Usage: cd [option] [directory]"""

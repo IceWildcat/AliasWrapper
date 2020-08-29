@@ -1,8 +1,7 @@
-from main import wShell as sh, add_method
+from main import wShell as sh
 import os
 
 
-@add_method(sh)
 def do_pushd(args: str):  # TODO: arguments  [-n] [+N | -N | dir]
     """Save the current directory into a stack and move to a new directory.
     Usage: pushd [-n] [+N | -N | dir]"""
@@ -14,7 +13,6 @@ def do_pushd(args: str):  # TODO: arguments  [-n] [+N | -N | dir]
     sh.cmdqueue.append("cd " + args)
 
 
-@add_method(sh)
 def do_popd(args: str):  # TODO: arguments [-n] [+N | -N]
     """popd can be used to return back to the previous directory that is on top of the stack.
     Usage: popd [-n] [+N | -N]"""
@@ -26,7 +24,6 @@ def do_popd(args: str):  # TODO: arguments [-n] [+N | -N]
     sh.cmdqueue.append("cd " + dir_pop)
 
 
-@add_method(sh)
 def do_dirs(args: str):  # TODO: arguments: [-clpv] [+N] [-N]
     """Display the list of currently remembered directories. By default, it includes the directory you are currently in. A directory can get into the list via pushd command followed by the dir name and can be removed via popd command.
     Usage: dirs  [-clpv] [+N] [-N]"""

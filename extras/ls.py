@@ -1,4 +1,5 @@
 from main import wShell as sh
+import os
 
 
 def ls_logic(filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
@@ -13,7 +14,7 @@ def ls_logic(filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
 def do_ls(args: str):
     """List files and directories.
     Usage: ls [options] [directory]"""
-    ls_dir = '../built_in'
+    ls_dir = os.getcwd()
     if len(args.split(" ")) > 2:
         args_split = args.split(" ")
         args_index = 0 if args_split[0].startswith('-') else 1  # Find the index for the flags

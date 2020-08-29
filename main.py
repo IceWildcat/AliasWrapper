@@ -1,6 +1,19 @@
 import cmd
+import importlib.util
 import json
 import os
+from functools import wraps
+
+
+funcfolders = ['built_in', 'extras']
+
+
+def selfwrap(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class wShell(cmd.Cmd):
@@ -10,213 +23,119 @@ class wShell(cmd.Cmd):
     }
     aliasfile = str(os.path.expanduser("~")) + "\\.alias.cfg"
 
+    variables = {}
+    last_exit_status = 0
     remembered_dirs = [os.getcwd()]
+    arithmetic_ops = ["-eq", "-ne", "-lt", "-le", "-gt", "-ge"]
+    commands_temp_history = []
 
     def emptyline(self):
         return
 
-    def do_alias(self, args: str):  # TODO: clean this shit
-        """Register or check a command alias. It autosaves it to the alias file.
-      Usage: alias <alias> [command] [args...]"""
-        args_list = args.split(' ')
-        # print(l)
-        if args == '':
-            self.stdout.write(self.do_alias.__doc__)
-            self.stdout.write(f"\nAliases: {str(self.aliases)}\n")
-        else:
-            cmd, arg, lin = self.parseline(args)
-            if self.aliases.get(args_list[0], None):
-                if len(args_list) < 2:
-                    self.stdout.write(f'{args_list[0]}: {str(self.aliases.get(args_list[0], "You fucked up"))}')
-                else:
-                    self.stdout.write(
-                        f'MODIFYING {args_list[0]}: {str(self.aliases.get(args_list[0], "?¿?¿Data race?"))} -> {str(arg)}')
-                    self.aliases[args_list[0]] = arg
-            else:
-                print(arg)
-                self.aliases[args_list[0]] = arg
-            with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
-                a.write(json.dumps(self.aliases))
-                self.stdout.write("Aliases saved.\n")
-
-        self.stdout.write("\n")
-
-        return
-
-    def do_pushd(self, args: str):  # TODO: arguments  [-n] [+N | -N | dir]
-        """Save the current directory into a stack and move to a new directory.
-        Usage: pushd [-n] [+N | -N | dir]"""
-        if not os.path.isdir(args):
-            return 1  # TODO: Error message
-
-        self.remembered_dirs.append(args)
-        self.cmdqueue.append("dirs")
-        self.cmdqueue.append("cd " + args)
-
-    def do_popd(self, args: str):  # TODO: arguments [-n] [+N | -N]
-        """popd can be used to return back to the previous directory that is on top of the stack.
-        Usage: popd [-n] [+N | -N]"""
-        if len(self.remembered_dirs) == 0:
-            return 1  # TODO: Error message
-
-        dir_pop = self.remembered_dirs.pop()
-        self.stdout.write(f'{dir_pop}\n')
-        self.cmdqueue.append("cd " + dir_pop)
-
-    def do_dirs(self, args: str):  # TODO: arguments: [-clpv] [+N] [-N]
-        """Display the list of currently remembered directories. By default, it includes the directory you are currently in. A directory can get into the list via pushd command followed by the dir name and can be removed via popd command.
-        Usage: dirs  [-clpv] [+N] [-N]"""
-        if len(args) == 1:
-            args_list = [arg for arg in args if not arg == '-']
-
-            if 'c' in args_list:
-                self.remembered_dirs = [os.getcwd()]
-                return 0
-
-        dir_output = "\t".join(self.remembered_dirs) + "\t" + os.getcwd()
-        self.stdout.write(f'{dir_output}\n')
-
-    def ls_logic(self, filename, args_list):  # TODO: flags dFil[a,h,s]rRsStX
-        """Given a file name and the argument list, determines if it sould be shown or not.
-        :param filename: Name of the file being evaluated
-        :param args_list: List of arguments
-        :return: True (show file) | False (don't show file)
-        """
-        return 'a' in args_list or not filename.startswith('.')  # If not flag 'a', show only not hidden files
-
-    def do_ls(self, args: str):
-        """List files and directories.
-        Usage: ls [options] [directory]"""
-        ls_dir = '.'
-        if len(args.split(" ")) > 2:
-            args_split = args.split(" ")
-            args_index = 0 if args_split[0].startswith('-') else 1  # Find the index for the flags
-
-            args_list = [arg for arg in args_split[args_index] if
-                         not arg == '-']  # With that index, get the flags as a list
-
-            ls_dir = args_split[1 - args_index]  # The directory is the other argument
-
-            if os.path.isdir(ls_dir):  # If the directory does not exist, return error
-                return 1  # TODO: Error message
-
-        else:
-            args_list = [arg for arg in args
-                         if not arg == '-']  # If there is only one argument (or none) it is much more straight-forward
-
-        # Get a sorted list of all the files inside the directory.
-        files = sorted([f for f in os.listdir(ls_dir) if self.ls_logic(f, args_list)], key=lambda f: f.lower())
-        # print(*files, sep='\t\t')  # TODO: Wrap the lines
-
-        files_output = "\t\t".join(files)
-        self.stdout.write(f'{files_output}\n')
-
-        return 0  # Success
-
-    def do_cat(self, args: str):
-        """It has three related functions with regard to text files: displaying them, combining copies of them and creating new ones.
-        Usage: cat [options] [filenames] [-] [filenames]"""
-        args_split = args.split(" ")
-        args_list = [arg for arg in args_split[0] if not arg == '-'] if args_split[0].startswith('-') else None
-        files = [f for f in args_split if not f.startswith('-')]
-
-        for f in files:
-            n = 0
-            if not os.path.isfile(f):
-                return 1  # TODO: Error message
-
-            file = open(f, 'r')
-            for line in file.readlines():  # TODO: possible optimization(?)
-                if args_list is not None and 'n' in args_list:
-                    n += 1
-                    self.stdout.write(f'{str(n) + ") " + line}')
-                else:
-                    self.stdout.write(f'{line}')
-
-            file.close()
-            self.stdout.write('\n\n')
-
-    def do_unalias(self, args: str):
-        """Unregister a command alias. It autosaves it to the alias file.
-      Usage: unalias <alias>"""
-        args_list = args.split(' ')
-        # print(l)
-        if args == '':
-            self.stdout.write(self.do_alias.__doc__)
-        else:
-            cmd, arg, lin = self.parseline(args)
-            if self.aliases.pop(args_list[0], None):
-                self.stdout.write(f'"{args_list[0]}" removed.\n')
-            else:
-                self.stdout.write(f'{args_list[0]} was not an alias.\n')
-            with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
-                a.write(json.dumps(self.aliases))
-                self.stdout.write("Aliases saved.\n")
-
-        self.stdout.write("\n")
-
-        return
-
     def do_quit(self, args: str):
         """Exit the program."""
+
+        # TODO: Optimization
+        # Record history on log file (.bash_history)
+        with open(self.variables['HISTFILE'], 'w') as f:
+            f.write(self.get_formatted_history())
+
         exit(0)
 
-    def do_echo(self, args: str):  # TODO: options
-        """Writes its arguments to standard output.
-        Usage: echo [option(s)] [string(s)]"""
-        self.stdout.write(f"{args}\n")
+    def system_var(self, name):
+        if name == '?':
+            return self.last_exit_status
 
-    def do_cd(self, args: str):  # TODO: options
-        """Changes the current working directory.
-        Usage: cd [option] [directory]"""
-        n = -1
-        try:
-            os.chdir(args)
-            n = 0
-        except OSError as e:
-            n = e.errno
-            self.stdout.write(f"cd: {e.strerror}\n\n")
-        finally:
-            return n
+        if name == 'BASHPID':
+            return os.getpid()
 
-    def do_reloadalias(self, line: str):  # TODO (1): handle exceptions
-        """Reloads the alias file and parses it into internal memory."""
-        with open(self.aliasfile, 'r') as a:
-            self.aliases = json.loads(a.read())
-            self.stdout.write("Aliases reloaded. Running `alias`...\n")
-            self.onecmd("alias")
+        if name == '$':
+            return os.getpid()
+
+        if name == 'PWD':
+            return os.getcwd()
+
+        if name == 'HISTSIZE':
+            return os.path.getsize(self.variables['HISTFILE'])
+
+        return ""
+
+    def replace_variables(self, args: str):
+        expr = ""
+        status = 0
+
+        for thing in args.split(" "):
+            if thing.startswith('$'):
+                if thing[1:] in self.variables:
+                    expr += str(self.variables[thing[1:]]) + " "
+                else:
+                    value = self.system_var(thing[1:])
+
+                    if not value:
+                        status = 3
+
+                    expr += str(value) + " "
+            else:
+                expr += thing + " "
+
+        return expr, status
+
+    def get_formatted_history(self):
+        hist = ""
+        count = 0
+        for command in self.commands_temp_history:
+            hist += "\t" + str(count) + "\t" + command + "\n"
+            count += 1
+
+        return hist
+
+    def do_history(self, args: str):
+        self.stdout.write(f'{self.get_formatted_history()}\n')
         return 0
 
     def do_shell(self, line: str):
         return os.system(line)
 
-    def command_in_path(self, exe: str):
-        """Checks in every address in the system PATH enviroment variable whether the command exists or not. If it does,
-        it executes it. Otherwise, returns False"""
-
-        for path in os.environ['PATH'].split(";"):  # For each value in the PATH
-            if not os.path.isdir(path):  # If the PATH address is not valid, move on
-                continue
-
-            if exe + '.exe' in os.listdir(
-                    path):  # However, if an executable file with the given name exists, return True
-                return True
-
-        return False  # Otherwise, return False (the command is not in PATH)
-
     def postcmd(self, stop, line: str):
-        self.prompt = str(0 if stop is None else stop) + "<" + str(os.getcwd()) + ">"
+        # Record history on temporal variable
+        self.commands_temp_history.append(line)
+
+        exit_status = 0 if stop is None else stop
+
+        self.prompt = str(exit_status) + "<" + str(os.getcwd()) + ">"
+        self.variables["?"] = exit_status
+
         return
 
     def default(self, line: str):
         args_list = line.split(' ')
         if self.aliases.get(args_list[0], None):
             self.onecmd(self.aliases[args_list[0]])
+        elif self.is_assignment(line):
+            pass
         elif self.command_in_path(args_list[0]) or os.path.isfile(args_list[0]):
             # If the command is a file found in the PATH or the command itself is a file, execute it as is
             return self.do_shell(' '.join(args_list))
         else:
             super().default(line)
+
+        return
+
+    loadedmodules = []
+
+    def loadmodule(self, name: str):
+        # TODO: check if module is already loaded
+        spec = importlib.util.find_spec(name)
+        lib = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lib)
+        self.loadedmodules.append(lib)
+        setattr(lib, 'sh', self)  # Hacky thing to pass the wShell instance to the module
+        for thing in dir(lib):
+            if not str(thing).startswith('_'):
+                doelement = getattr(lib, thing)
+                if callable(doelement):
+                    setattr(wShell, doelement.__name__, selfwrap(doelement))
+                    # print(doelement.__name__)
 
         return
 
@@ -226,7 +145,42 @@ class wShell(cmd.Cmd):
             self.stdout.write("Alias file not found, creating...\n")
             with open(self.aliasfile, 'a') as a:
                 a.write(json.dumps(self.aliases))
-        self.do_reloadalias("")
+
+        # O(n^2 for the win)
+        for foldname in funcfolders:
+            with os.scandir(foldname) as folder:
+                for fil in folder:
+                    if fil.is_dir():
+                        continue  # TODO: recursion over folders maybe?
+                    if fil.name.endswith('.py'):
+                        importname = foldname + '.' + fil.name[:-3]  # remove '.py' from filename
+                        try:
+                            self.loadmodule(importname)
+                        except Exception as e:
+                            print('Oops,something went poof.')
+                            # TODO: handle exceptions at importing the modules
+                            raise e
+
+        # That shit went too deep sorry im at phone
+
+        __do_reloadalias = getattr(self, 'do_reloadalias', None)
+        if __do_reloadalias:
+            __do_reloadalias("")
+        else:
+            self.stdout.write("ERROR: cannot reload aliases!\n")
+
+        self.variables["HISTFILE"] = os.path.join(os.getcwd(),'.bash_history')
+
+        # TODO: Optimization
+        # Load the command history
+        if os.path.isfile(self.variables["HISTFILE"]):
+            with open(self.variables["HISTFILE"], 'r') as f:
+                for line in f.readlines():
+                    split = line.split("\t")[1:]
+                    number = split[0]
+                    command = split[1].replace("\n", "")
+                    self.commands_temp_history.append(command)
+
 
 
 if __name__ == "__main__":

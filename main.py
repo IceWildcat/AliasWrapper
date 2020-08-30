@@ -51,7 +51,14 @@ class wShell(cmd.Cmd):
         exit(0)
 
     def command_in_path(self, command: str):
-        for folder in os.environ["PATH"].split(";"):
+        path_str = os.environ["PATH"]
+
+        if path_str.find(":"):
+            folders = path_str.split(":")
+        else:
+            folders = path_str.split(";")
+
+        for folder in folders:
             for file in os.listdir(folder):
                 if file.find(command) and os.access(file, os.X_OK):
                     return True
@@ -206,6 +213,13 @@ class wShell(cmd.Cmd):
         return os.system(line)
 
     def precmd(self, line: str):
+        if "&&" in line:
+            split = line.split("&&")
+            for command in split[1:]:
+                self.cmdqueue.append(command)
+
+            return split[0]
+
         # TODO: do this only if calling a script or similar
         self.populate_vars(line.split(' '))
         args_processed, exit_status = self.replace_variables(line)

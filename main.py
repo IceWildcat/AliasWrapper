@@ -24,6 +24,13 @@ class wShell(cmd.Cmd):
     }
     aliasfile = str(os.path.expanduser("~")) + "\\.alias.cfg"
 
+    # TODO: Explanation of the regex(?)
+    regex_folder = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)+\"?"
+    regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[\w]+)?\"?"
+    regex_value = r"(\\$[\w]+|-?[0-9]+)"
+    regex_variable = r"\$[\w]+"
+    regex_string = r'"[^"]*"'
+
     variables = {}
     last_exit_status = 0
     remembered_dirs = [os.getcwd()]
@@ -42,6 +49,14 @@ class wShell(cmd.Cmd):
             f.write(self.get_formatted_history())
 
         exit(0)
+
+    def command_in_path(self, command: str):
+        for folder in os.environ["PATH"].split(";"):
+            for file in os.listdir(folder):
+                if file.find(command) and os.access(file, os.X_OK):
+                    return True
+
+        return False
 
     def system_var(self, name, args=""):
         if name == '?':
@@ -63,26 +78,26 @@ class wShell(cmd.Cmd):
             # TODO: Unexpected result(?)
             return args
 
+        if name == 'PATH':
+            return os.environ['PATH']
+
         return ""
 
     # TODO: recognice variables not separated by spaces
     def replace_variables(self, args: str):
-        expr = ""
+        expr = args
         status = 0
 
-        for thing in args.split(" "):
-            if thing.startswith('$'):
-                if thing[1:] in self.variables:
-                    expr += str(self.variables[thing[1:]]) + " "
-                else:
-                    value = self.system_var(thing[1:], args)
-
-                    if not value:
-                        status = 3
-
-                    expr += str(value) + " "
+        for thing in re.finditer(self.regex_variable, args):
+            if thing.group()[1:] in self.variables:
+                expr = expr.replace(thing[0], str(self.variables[thing[0][1:]]))
             else:
-                expr += thing + " "
+                value = self.system_var(thing[0][1:])
+
+                if not value:
+                    status = 3
+                else:
+                    expr = expr.replace(thing[0], str(value))
 
         return expr, status
 

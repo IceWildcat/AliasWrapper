@@ -1,5 +1,4 @@
 from main import wShell as sh
-from built_in.logic import regex_folder
 import os
 import re
 
@@ -30,7 +29,7 @@ def do_ls(args: str):
         files_output = "\t\t".join(files)
         sh.stdout.write(f'{files_output}\n')
         return 0
-    elif re.fullmatch(r"^" + regex_folder + "$", args):
+    elif re.fullmatch(r"^" + sh.regex_folder + "$", args):
         # TODO: no operators given (do ls on given dir)
         files = sorted([f for f in os.listdir(args) if not f.startswith(".")], key=lambda f: f.lower())
         # print(*files, sep='\t\t')  # TODO: Wrap the lines

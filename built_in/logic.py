@@ -3,12 +3,6 @@ import re  # Regex support
 import os
 import stat
 
-# TODO: Explanation of the regex(?)
-regex_folder = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)+\"?"
-regex_path = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)*(.[\w]+)?\"?"
-regex_value = r"(\\$[\w]+|-?[0-9]+)"
-regex_string = r'"[^"]*"'
-
 
 # TODO: check logic
 def arithmetic_logic(args: str):
@@ -91,12 +85,12 @@ def string_logic(args: str):
 
 
 def do_test(args: str):
-    if re.fullmatch("^" + regex_value + " -(eq|ne|le|lt|ge|gt) " + regex_value + "$", args):
+    if re.fullmatch("^" + sh.regex_value + " -(eq|ne|le|lt|ge|gt) " + sh.regex_value + "$", args):
         return arithmetic_logic(args)
-    elif re.fullmatch('^-([b-h]|G|k|N|L|O|p|[r-u]|S|w|x) ' + regex_path + '$', args):
+    elif re.fullmatch('^-([b-h]|G|k|N|L|O|p|[r-u]|S|w|x) ' + sh.regex_path + '$', args):
         return file_logic(args)
-    elif re.fullmatch('^-[zn] ' + regex_string + '$', args) or \
-            re.fullmatch('^' + regex_string + ' ?!?= ?' + regex_string + '$', args):
+    elif re.fullmatch('^-[zn] ' + sh.regex_string + '$', args) or \
+            re.fullmatch('^' + sh.regex_string + ' ?!?= ?' + sh.regex_string + '$', args):
         return string_logic(args)
 
     print("other")

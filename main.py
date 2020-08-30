@@ -2,6 +2,7 @@ import cmd
 import importlib.util
 import json
 import os
+import re
 from functools import wraps
 
 
@@ -42,7 +43,7 @@ class wShell(cmd.Cmd):
 
         exit(0)
 
-    def system_var(self, name):
+    def system_var(self, name, args=""):
         if name == '?':
             return self.last_exit_status
 
@@ -58,8 +59,13 @@ class wShell(cmd.Cmd):
         if name == 'HISTSIZE':
             return os.path.getsize(self.variables['HISTFILE'])
 
+        if name == '*':
+            # TODO: Unexpected result(?)
+            return args
+
         return ""
 
+    # TODO: recognice variables not separated by spaces
     def replace_variables(self, args: str):
         expr = ""
         status = 0
@@ -69,7 +75,7 @@ class wShell(cmd.Cmd):
                 if thing[1:] in self.variables:
                     expr += str(self.variables[thing[1:]]) + " "
                 else:
-                    value = self.system_var(thing[1:])
+                    value = self.system_var(thing[1:], args)
 
                     if not value:
                         status = 3
@@ -79,6 +85,23 @@ class wShell(cmd.Cmd):
                 expr += thing + " "
 
         return expr, status
+
+    def is_assignment(self, line: str):
+        if re.fullmatch("^[A-Za-z_]\\w* ?= ?(\")?[^\"]+(\")?$", line):
+            split = line.split("=")
+            var_name = split[0]
+            if var_name.endswith(" "):
+                var_name = var_name[:-1]
+
+            var_value = split[1]
+            if var_value.startswith(" "):
+                var_value = var_value[1:]
+
+            self.variables[var_name] = var_value
+
+            return True
+
+        return False
 
     def get_formatted_history(self):
         hist = ""
@@ -93,8 +116,85 @@ class wShell(cmd.Cmd):
         self.stdout.write(f'{self.get_formatted_history()}\n')
         return 0
 
+    def do_alias(self, args: str):  # TODO: clean this shit
+        """Register or check a command alias. It autosaves it to the alias file.
+      Usage: alias <alias> [command] [args...]"""
+        args_list = args.split(' ')
+        # print(l)
+        if args == '':
+            self.stdout.write(self.do_alias.__doc__)
+            self.stdout.write(f"\nAliases: {str(self.aliases)}\n")
+        else:
+            cmd, arg, lin = self.parseline(args)
+            if self.aliases.get(args_list[0], None):
+                if len(args_list) < 2:
+                    self.stdout.write(f'{args_list[0]}: {str(self.aliases.get(args_list[0], "You fucked up"))}')
+                else:
+                    self.stdout.write(
+                        f'MODIFYING {args_list[0]}: {str(self.aliases.get(args_list[0], "?¿?¿Data race?"))} -> {str(arg)}')
+                    self.aliases[args_list[0]] = arg
+            else:
+                print(arg)
+                self.aliases[args_list[0]] = arg
+            with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
+                a.write(json.dumps(self.aliases))
+                self.stdout.write("Aliases saved.\n")
+
+        self.stdout.write("\n")
+
+        return
+
+    def do_reloadalias(self, line: str):  # TODO (1): handle exceptions
+        """Reloads the alias file and parses it into internal memory."""
+        with open(self.aliasfile, 'r') as a:
+            self.aliases = json.loads(a.read())
+            self.stdout.write("Aliases reloaded. Running `alias`...\n")
+            self.onecmd("alias")
+        return 0
+
+    def do_unalias(self, args: str):
+        """Unregister a command alias. It autosaves it to the alias file.
+      Usage: unalias <alias>"""
+        args_list = args.split(' ')
+        # print(l)
+        if args == '':
+            self.stdout.write(self.do_alias.__doc__)
+        else:
+            cmd, arg, lin = self.parseline(args)
+            if self.aliases.pop(args_list[0], None):
+                self.stdout.write(f'"{args_list[0]}" removed.\n')
+            else:
+                self.stdout.write(f'{args_list[0]} was not an alias.\n')
+            with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
+                a.write(json.dumps(self.aliases))
+                self.stdout.write("Aliases saved.\n")
+
+        self.stdout.write("\n")
+
+        return
+
+    def populate_vars(self, args_list: list):
+        args_number = len(args_list) - 1
+        self.variables['#'] = args_number
+
+        for arg_n in range(0, args_number + 1):
+            self.variables[str(arg_n)] = args_list[arg_n]
+
+        # If there are previous values for more arguments, delete them
+        if str(args_number + 1) in self.variables:
+            n = args_number + 1
+            while str(n) in self.variables:
+                self.variables.pop(str(n))
+                n += 1
+
     def do_shell(self, line: str):
         return os.system(line)
+
+    def precmd(self, line: str):
+        # TODO: do this only if calling a script or similar
+        self.populate_vars(line.split(' '))
+        args_processed, exit_status = self.replace_variables(line)
+        return args_processed
 
     def postcmd(self, stop, line: str):
         # Record history on temporal variable
@@ -109,6 +209,8 @@ class wShell(cmd.Cmd):
 
     def default(self, line: str):
         args_list = line.split(' ')
+
+        # COMMAND CHECKING
         if self.aliases.get(args_list[0], None):
             self.onecmd(self.aliases[args_list[0]])
         elif self.is_assignment(line):
@@ -146,7 +248,7 @@ class wShell(cmd.Cmd):
             with open(self.aliasfile, 'a') as a:
                 a.write(json.dumps(self.aliases))
 
-        # O(n^2 for the win)
+        # TODO: O(n^2 for the win)
         for foldname in funcfolders:
             with os.scandir(foldname) as folder:
                 for fil in folder:
@@ -163,11 +265,7 @@ class wShell(cmd.Cmd):
 
         # That shit went too deep sorry im at phone
 
-        __do_reloadalias = getattr(self, 'do_reloadalias', None)
-        if __do_reloadalias:
-            __do_reloadalias("")
-        else:
-            self.stdout.write("ERROR: cannot reload aliases!\n")
+        self.do_reloadalias("")
 
         self.variables["HISTFILE"] = os.path.join(os.getcwd(), '.bash_history')
 

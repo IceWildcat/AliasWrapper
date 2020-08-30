@@ -91,35 +91,14 @@ def string_logic(args: str):
 
 
 def do_test(args: str):
-    processed_line, exit_status = sh.replace_variables(args)
-
     if re.fullmatch("^" + regex_value + " -(eq|ne|le|lt|ge|gt) " + regex_value + "$", args):
-        return arithmetic_logic(processed_line)
+        return arithmetic_logic(args)
     elif re.fullmatch('^-([b-h]|G|k|N|L|O|p|[r-u]|S|w|x) ' + regex_path + '$', args):
-        return file_logic(processed_line)
+        return file_logic(args)
     elif re.fullmatch('^-[zn] ' + regex_string + '$', args) or \
             re.fullmatch('^' + regex_string + ' ?!?= ?' + regex_string + '$', args):
-        return string_logic(processed_line)
+        return string_logic(args)
 
     print("other")
 
     return 3
-
-
-# TODO: Fix logic
-def is_assignment(line: str):
-    if re.fullmatch("^[A-Za-z_]\\w* ?= ?(\")?[^\"]+(\")?$", line):
-        split = line.split("=")
-        var_name = split[0]
-        if var_name.endswith(" "):
-            var_name = var_name[:-1]
-
-        var_value = split[1]
-        if var_value.startswith(" "):
-            var_value = var_value[1:]
-
-        sh.variables[var_name] = var_value
-
-        return True
-
-    return False

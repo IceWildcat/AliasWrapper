@@ -1,7 +1,6 @@
 venv
 .idea
 *.pyc
-__pycache__
-*/__pycache__
+*/__pycache__/*
 .pyc
 .bash_history

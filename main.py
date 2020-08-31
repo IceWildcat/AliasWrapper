@@ -53,14 +53,25 @@ class wShell(cmd.Cmd):
     def command_in_path(self, command: str):
         path_str = os.environ["PATH"]
 
-        if path_str.find(":"):
-            folders = path_str.split(":")
+        # WARNING! Order matters here because windows is separated by ';', but contains ':' (C:\...)
+        if ';' in path_str:
+            folders = path_str.split(";")
         else:
             folders = path_str.split(";")
 
+        # TODO: Optimization
         for folder in folders:
+            if not os.path.exists(folder):
+                continue
+
             for file in os.listdir(folder):
-                if file.find(command) and os.access(file, os.X_OK):
+                file_path = os.path.join(folder, file)
+
+                if not os.path.exists(file_path):
+                    print(file + " does not exist")
+                    continue
+
+                if not file.find(command) == -1 and os.access(file_path, os.X_OK):
                     return True
 
         return False
@@ -244,7 +255,7 @@ class wShell(cmd.Cmd):
             self.onecmd(self.aliases[args_list[0]])
         elif self.is_assignment(line):
             pass
-        elif self.command_in_path(args_list[0]) or os.path.isfile(args_list[0]):
+        elif (os.path.isfile(args_list[0]) and os.access(args_list[0], os.X_OK)) or self.command_in_path(args_list[0]):
             # If the command is a file found in the PATH or the command itself is a file, execute it as is
             return self.do_shell(' '.join(args_list))
         else:

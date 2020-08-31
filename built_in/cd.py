@@ -11,6 +11,6 @@ def do_cd(args: str):  # TODO: options
         n = 0
     except OSError as e:
         n = e.errno
-        sh.stdout.write(f"cd: {e.strerror}\n\n")
+        sh.print(f"cd: {e.strerror}\n\n")
     finally:
         return n

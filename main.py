@@ -31,6 +31,7 @@ class wShell(cmd.Cmd):
     regex_variable = r"\$[\w]+"
     regex_string = r'"[^"]*"'
 
+    output = None
     variables = {}
     last_exit_status = 0
     remembered_dirs = [os.getcwd()]
@@ -39,6 +40,18 @@ class wShell(cmd.Cmd):
 
     def emptyline(self):
         return
+
+    def print(self, line: str):
+        # if hasattr(self, 'output') and self.output:
+        #     self.output += line
+        # else:
+        self.output = line
+
+    def flush_output(self):
+        # Print the buffered output, if any
+        if hasattr(self, 'output') and self.output:
+            self.stdout.write(self.output)
+            self.output = None
 
     def do_quit(self, args: str):
         """Exit the program."""
@@ -146,7 +159,7 @@ class wShell(cmd.Cmd):
         return hist
 
     def do_history(self, args: str):
-        self.stdout.write(f'{self.get_formatted_history()}\n')
+        self.print(f'{self.get_formatted_history()}\n')
         return 0
 
     def do_alias(self, args: str):  # TODO: clean this shit
@@ -155,15 +168,15 @@ class wShell(cmd.Cmd):
         args_list = args.split(' ')
         # print(l)
         if args == '':
-            self.stdout.write(self.do_alias.__doc__)
-            self.stdout.write(f"\nAliases: {str(self.aliases)}\n")
+            self.print(self.do_alias.__doc__)
+            self.print(f"\nAliases: {str(self.aliases)}\n")
         else:
             cmd, arg, lin = self.parseline(args)
             if self.aliases.get(args_list[0], None):
                 if len(args_list) < 2:
-                    self.stdout.write(f'{args_list[0]}: {str(self.aliases.get(args_list[0], "You fucked up"))}')
+                    self.print(f'{args_list[0]}: {str(self.aliases.get(args_list[0], "You fucked up"))}')
                 else:
-                    self.stdout.write(
+                    self.print(
                         f'MODIFYING {args_list[0]}: {str(self.aliases.get(args_list[0], "?¿?¿Data race?"))} -> {str(arg)}')
                     self.aliases[args_list[0]] = arg
             else:
@@ -171,9 +184,9 @@ class wShell(cmd.Cmd):
                 self.aliases[args_list[0]] = arg
             with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
                 a.write(json.dumps(self.aliases))
-                self.stdout.write("Aliases saved.\n")
+                self.print("Aliases saved.\n")
 
-        self.stdout.write("\n")
+        self.print("\n")
 
         return
 
@@ -181,7 +194,7 @@ class wShell(cmd.Cmd):
         """Reloads the alias file and parses it into internal memory."""
         with open(self.aliasfile, 'r') as a:
             self.aliases = json.loads(a.read())
-            self.stdout.write("Aliases reloaded. Running `alias`...\n")
+            self.print("Aliases reloaded. Running `alias`...\n")
             self.onecmd("alias")
         return 0
 
@@ -191,18 +204,18 @@ class wShell(cmd.Cmd):
         args_list = args.split(' ')
         # print(l)
         if args == '':
-            self.stdout.write(self.do_alias.__doc__)
+            self.print(self.do_alias.__doc__)
         else:
             cmd, arg, lin = self.parseline(args)
             if self.aliases.pop(args_list[0], None):
-                self.stdout.write(f'"{args_list[0]}" removed.\n')
+                self.print(f'"{args_list[0]}" removed.\n')
             else:
-                self.stdout.write(f'{args_list[0]} was not an alias.\n')
+                self.print(f'{args_list[0]} was not an alias.\n')
             with open(self.aliasfile, 'w') as a:  # TODO (1): handle exceptions
                 a.write(json.dumps(self.aliases))
-                self.stdout.write("Aliases saved.\n")
+                self.print("Aliases saved.\n")
 
-        self.stdout.write("\n")
+        self.print("\n")
 
         return
 
@@ -223,6 +236,16 @@ class wShell(cmd.Cmd):
     def do_shell(self, line: str):
         return os.system(line)
 
+    def do_pipe(self, args):
+        buffer = None
+        for arg in args:
+            s = arg
+            if buffer:
+                # This command just adds the output of a previous command as the last argument
+                s += ' ' + buffer
+            self.onecmd(s)
+            buffer = self.output
+
     def precmd(self, line: str):
         if "&&" in line:
             split = line.split("&&")
@@ -237,6 +260,11 @@ class wShell(cmd.Cmd):
         return args_processed
 
     def postcmd(self, stop, line: str):
+        # Print the buffered output, if any
+        if hasattr(self, 'output') and self.output:
+            self.stdout.write(self.output)
+            self.output = None
+
         # Record history on temporal variable
         self.commands_temp_history.append(line)
 
@@ -245,7 +273,13 @@ class wShell(cmd.Cmd):
         self.prompt = str(exit_status) + "<" + str(os.getcwd()) + ">"
         self.variables["?"] = exit_status
 
-        return
+        return stop
+
+    def parseline(self, line):
+        if '|' in line:
+            return 'pipe', line.split('|'), line
+
+        return cmd.Cmd.parseline(self, line)
 
     def default(self, line: str):
         args_list = line.split(' ')
@@ -257,7 +291,7 @@ class wShell(cmd.Cmd):
             pass
         elif (os.path.isfile(args_list[0]) and os.access(args_list[0], os.X_OK)) or self.command_in_path(args_list[0]):
             # If the command is a file found in the PATH or the command itself is a file, execute it as is
-            return self.do_shell(' '.join(args_list))
+            return self.do_shell(line)
         else:
             super().default(line)
 
@@ -318,6 +352,8 @@ class wShell(cmd.Cmd):
                     number = split[0]
                     command = split[1].replace("\n", "")
                     self.commands_temp_history.append(command)
+
+        self.flush_output()
 
 
 if __name__ == "__main__":

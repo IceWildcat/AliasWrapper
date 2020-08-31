@@ -27,7 +27,7 @@ def do_ls(args: str):
         # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
         files_output = "\t\t".join(files)
-        sh.stdout.write(f'{files_output}\n')
+        sh.print(f'{files_output}\n')
         return 0
     elif re.fullmatch(r"^" + sh.regex_folder + "$", args):
         # TODO: no operators given (do ls on given dir)
@@ -35,7 +35,7 @@ def do_ls(args: str):
         # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
         files_output = "\t\t".join(files)
-        sh.stdout.write(f'{files_output}\n')
+        sh.print(f'{files_output}\n')
         return 0
     else:
         # TODO: operator logic
@@ -60,13 +60,13 @@ def do_ls(args: str):
             path = os.getcwd()
 
         if not os.path.isdir(path):
-            sh.stdout.write(f'Invalid path!\n')
+            sh.print(f'Invalid path!\n')
             return 3
 
         files = sorted([f for f in os.listdir(path) if ls_logic(f, operator_list)], key=lambda f: f.lower())
         # print(*files, sep='\t\t')  # TODO: Wrap the lines
 
         files_output = "\t\t".join(files)
-        sh.stdout.write(f'{files_output}\n')
+        sh.print(f'{files_output}\n')
         return 0
 

@@ -20,7 +20,7 @@ def do_popd(args: str):  # TODO: arguments [-n] [+N | -N]
         return 1  # TODO: Error message
 
     dir_pop = sh.remembered_dirs.pop()
-    sh.stdout.write(f'{dir_pop}\n')
+    sh.print(f'{dir_pop}\n')
     sh.cmdqueue.append("cd " + dir_pop)
 
 
@@ -35,4 +35,4 @@ def do_dirs(args: str):  # TODO: arguments: [-clpv] [+N] [-N]
             return 0
 
     dir_output = "\t".join(sh.remembered_dirs) + "\t" + os.getcwd()
-    sh.stdout.write(f'{dir_output}\n')
+    sh.print(f'{dir_output}\n')

@@ -18,9 +18,9 @@ def do_cat(args: str):
         for line in file.readlines():  # TODO: possible optimization(?)
             if args_list is not None and 'n' in args_list:
                 n += 1
-                sh.stdout.write(f'{str(n) + ") " + line}')
+                sh.print(f'{str(n) + ") " + line}')
             else:
-                sh.stdout.write(f'{line}')
+                sh.print(f'{line}')
 
         file.close()
-        sh.stdout.write('\n\n')
+        sh.print('\n\n')

@@ -22,7 +22,7 @@ class wShell(cmd.Cmd):
     aliases = {
         'exit': 'quit'
     }
-    aliasfile = str(os.path.expanduser("~")) + "\\.alias.cfg"
+    aliasfile = os.path.join(os.path.expanduser('~'), '.alias.cfg')
 
     # TODO: Explanation of the regex(?)
     regex_folder = r"\"?([A-Z]:)?((\/|\\)[^\/\:\*\?\!\<\>\|]*)+\"?"

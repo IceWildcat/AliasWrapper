@@ -273,7 +273,7 @@ class wShell(cmd.Cmd):
         self.prompt = str(exit_status) + "<" + str(os.getcwd()) + ">"
         self.variables["?"] = exit_status
 
-        return stop
+        return
 
     def parseline(self, line):
         if '|' in line:

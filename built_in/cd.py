@@ -5,7 +5,7 @@ import os
 def do_cd(args: str):  # TODO: options
     """Changes the current working directory.
     Usage: cd [option] [directory]"""
-    n = -1
+    n = 1
     try:
         os.chdir(args)
         n = 0
@@ -14,3 +14,7 @@ def do_cd(args: str):  # TODO: options
         sh.print(f"cd: {e.strerror}\n\n")
     finally:
         return n
+
+
+def do_pwd(args: str):
+    sh.print(f"{os.getcwd()}\n")

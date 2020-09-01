@@ -8,6 +8,7 @@ def do_cat(args: str):
     args_split = args.split(" ")
     args_list = [arg for arg in args_split[0] if not arg == '-'] if args_split[0].startswith('-') else None
     files = [f for f in args_split if not f.startswith('-')]
+    output = ""
 
     for f in files:
         n = 0
@@ -18,9 +19,13 @@ def do_cat(args: str):
         for line in file.readlines():  # TODO: possible optimization(?)
             if args_list is not None and 'n' in args_list:
                 n += 1
-                sh.print(f'{str(n) + ") " + line}')
+                output += f'{str(n) + ") " + line}\n'
             else:
-                sh.print(f'{line}')
+                output += f'{line}\n'
 
         file.close()
-        sh.print('\n\n')
+        output += '\n\n'
+
+    sh.print(output)
+
+    return 0

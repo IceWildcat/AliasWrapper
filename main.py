@@ -31,7 +31,7 @@ class wShell(cmd.Cmd):
     regex_variable = r"\$[\w]+"
     regex_string = r'"[^"]*"'
 
-    output = None
+    output = ""
     variables = {}
     last_exit_status = 0
     remembered_dirs = [os.getcwd()]
@@ -42,16 +42,12 @@ class wShell(cmd.Cmd):
         return
 
     def print(self, line: str):
-        # if hasattr(self, 'output') and self.output:
-        #     self.output += line
-        # else:
-        self.output = line
+        self.output += line
 
     def flush_output(self):
-        # Print the buffered output, if any
-        if hasattr(self, 'output') and self.output:
-            self.stdout.write(self.output)
-            self.output = None
+        self.stdout.write(self.output)
+        self.stdout.flush()
+        self.output = ""
 
     def do_quit(self, args: str):
         """Exit the program."""
@@ -204,7 +200,7 @@ class wShell(cmd.Cmd):
         args_list = args.split(' ')
         # print(l)
         if args == '':
-            self.print(self.do_alias.__doc__)
+            self.print(self.do_unalias.__doc__)
         else:
             cmd, arg, lin = self.parseline(args)
             if self.aliases.pop(args_list[0], None):
@@ -217,7 +213,7 @@ class wShell(cmd.Cmd):
 
         self.print("\n")
 
-        return
+        return 0
 
     def populate_vars(self, args_list: list):
         args_number = len(args_list) - 1
@@ -260,10 +256,7 @@ class wShell(cmd.Cmd):
         return args_processed
 
     def postcmd(self, stop, line: str):
-        # Print the buffered output, if any
-        if hasattr(self, 'output') and self.output:
-            self.stdout.write(self.output)
-            self.output = None
+        self.flush_output()
 
         # Record history on temporal variable
         self.commands_temp_history.append(line)

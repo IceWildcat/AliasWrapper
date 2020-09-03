@@ -67,7 +67,7 @@ def file_logic(args: str):
         mode = os.stat(file).st_mode
         return 0 if stat.S_ISSOCK(mode) else 1
     elif split[0] == '-t':  # TODO: File (descriptor) is associated with a terminal device
-        sh.stdout.write(f"Unimplemented method\n")
+        sh.print(f"Unimplemented method\n")
         return 3
     elif split[0] == '-u':  # set-user-id (suid) flag set on file
         mode = os.stat(file).st_mode
